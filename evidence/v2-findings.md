@@ -1,0 +1,20 @@
+# Findings log (devops-minikube-macos-v2.html)
+- [1.1] brew install helm => Helm 4.3.0 (не 3.x). Поки що все працює; перевіряти далі (--reuse-values, rollback).
+- [1.2] Одразу після minikube start вузол NotReady ~20с; текст "Очікуй Ready" без вказівки почекати/повторити.
+- [4.3] kubectl rollout undo друкує Warning про last-applied-configuration (kubectl 1.37) — варто пояснити, що це очікувано.
+- [5.2->7.1] port-forward з 5.2 гине під час helm upgrade/rollback у 5.3 (pod пересоздано). 7.1 каже "port-forward з етапу 5 повинен працювати" — хибно. Цикл з curl -s -o /dev/null не показує помилок: 150 ітерацій пройшли "успішно" в мертвий тунель. Треба: перезапустити pf перед 7.1 + curl -f/-w code або попередня перевірка /health.
+- [7.1] kubectl logs load після Completed — порожній (curl -s -o /dev/null). Крок нічого не показує.
+- [6.1] helm repo update падає з exit 1, якщо в користувача є інший недоступний repo (мій випадок). Не блокує, але "не продовжуй після помилки" суперечить.
+- [8.3] Під час scale postgres=0 scrape-targets API лишаються UP (Prometheus скрейпить not-ready pod). Текст "scraping може також втратити targets" — не відбувається; absent() правило не тестується цим сценарієм.
+- [13.1 vs 13.3] Ручний dump створюється з правами 644, backup.sh — 600 (umask 077). Непослідовно; варто ( umask 077; ... ) і в 13.1.
+- [14.2] kubectl 1.37: "Flag --cpu-percent has been deprecated, Use --cpu ..." → замінити на --cpu=50%.
+- [14.2] Результат: 2→4 репліки за 61 с. Працює.
+- [14.3] OpenTofu: init/plan/apply OK, квота відхиляє pod. Працює.
+- [13] Backup/restore: OK, diff порожній.
+- [9.2] Локальні тести: 4 passed (fastapi 0.115.12 / starlette 0.46.2). route-мітка з request.scope["route"] працює.
+- [9.3] gh auth login — інтерактивний; посібник не каже, який спосіб обрати (HTTPS + browser). Потрібні scope repo (+ workflow для push .github/workflows!). gh за замовчуванням додає workflow? Перевірити після login.
+- [9.3] КРИТИЧНО: gh auth login дає scopes gist,read:org,repo без workflow → `gh repo create --push` відхилено: "refusing to allow an OAuth App to create or update workflow .github/workflows/ci.yaml without workflow scope". Репозиторій створюється порожнім. Фікс: `gh auth login -s workflow` або `gh auth refresh -s workflow` перед push.
+- [9.1] КРИТИЧНО: `aquasecurity/trivy-action@0.28.0` не існує (теги з префіксом v). А `v0.28.0` теж зламаний: посилається на setup-trivy@v0.2.1, якого більше немає. Працює v0.36.0 (setup-trivy запінено хешем). Урок: старі теги composite-actions можуть ламатися; фіксувати SHA.
+- [9.1] actions/checkout@v4 і setup-python@v5 дають annotation "Node.js 20 is deprecated" → v5 / v6.
+- [9.3] UI-крок "Package settings → Change visibility → Public" не потрібен: package з public-репо через GITHUB_TOKEN одразу публічний (anon manifest 200). Текст "Публічний репозиторій не гарантує публічність package" — не підтвердився для першої публікації.
+- [9.4] `gh api /user/packages/...` потребує read:packages — не використовується в посібнику, ОК. helm upgrade на ghcr SHA-тег: OK.
